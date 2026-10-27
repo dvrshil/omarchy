@@ -18,6 +18,7 @@ set -euo pipefail
 
 registry="$OMARCHY_PATH/default/agents/registry"
 skills_source="$OMARCHY_PATH/default/agents/skills"
+shared="$HOME/.agents/skills"
 config_home=${XDG_CONFIG_HOME:-$HOME/.config}
 only=("$@")
 
@@ -62,9 +63,23 @@ omarchy_link() {
   [[ -L $1 && $(readlink -- "$1") == */default/agents/skills/* ]]
 }
 
+# Some people point an agent's folder at ~/.agents/skills by hand, or the
+# other way round. Through such a link, an agent's folder holds the shared
+# links themselves, so it is neither filled again nor emptied.
+same_as_shared() {
+  [[ -e $1 && -e $shared && $(readlink -f -- "$1") == "$(readlink -f -- "$shared")" ]]
+}
+
 link_skills_into() {
   local dir=$1 skill name entry
 
+  if [[ $dir != "$shared" ]] && same_as_shared "$dir"; then
+    return 0
+  fi
+  # A dangling link where the folder should be is the user's to sort out.
+  if [[ -L $dir && ! -e $dir ]]; then
+    return 0
+  fi
   mkdir -p -- "$dir"
   for skill in "$skills_source"/*/; do
     skill=${skill%/}
@@ -86,6 +101,7 @@ unlink_skills_from() {
   local dir=$1 entry removed=0
 
   [[ -d $dir ]] || return 0
+  same_as_shared "$dir" && return 0
   for entry in "$dir"/*; do
     if omarchy_link "$entry"; then
       rm -f -- "$entry"
@@ -109,7 +125,7 @@ selected() {
   return 1
 }
 
-link_skills_into "$HOME/.agents/skills"
+link_skills_into "$shared"
 
 while read -r agent variable home reads_shared; do
   [[ -z $agent || $agent == \#* ]] && continue

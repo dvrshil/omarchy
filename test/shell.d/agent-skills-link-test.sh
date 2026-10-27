@@ -95,3 +95,17 @@ for skill in "${skills[@]}"; do
 done
 [[ ! -e $home/.claude ]] || fail "the default home is left alone when the variable moves it"
 pass "a home moved by its environment variable gets the links instead of the default one"
+
+# Some people make an agent's folder a link to ~/.agents/skills by hand. The
+# cleanup of a shared-folder agent must not reach the shared links through it,
+# and the link itself stays.
+home="$test_tmp/home2"
+mkdir -p "$home/.codex" "$home/.agents/skills"
+ln -s "$home/.agents/skills" "$home/.codex/skills"
+link || fail "omarchy-agent-skills-link finishes with a folder that links to ~/.agents/skills"
+for skill in "${skills[@]}"; do
+  links_to_shipped "$home/.agents/skills/$skill" || fail "the shared links survive a folder that links to them ($skill)"
+done
+[[ -L $home/.codex/skills && $(readlink "$home/.codex/skills") == "$home/.agents/skills" ]] ||
+  fail "the user's folder link is kept"
+pass "a folder that links to ~/.agents/skills keeps the shared links and the link itself"
