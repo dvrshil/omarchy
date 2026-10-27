@@ -119,12 +119,15 @@ ask() {
 }
 
 # mise puts a shim on the path for every agent Omarchy offers, installed or
-# not, so a shim only counts when mise can resolve it.
+# not, and omarchy-mise-install a wrapper that installs the tool on first
+# run, so neither counts until mise can resolve the tool: running the wrapper
+# here would install agents the user never asked for. Same rule as
+# omarchy-agent-skills-link.
 agent_installed() {
   local path
 
-  path=$(command -v "$1") || return 1
-  if [[ $(readlink -f "$path") == */mise ]]; then
+  path=$(type -P -- "$1") || return 1
+  if [[ $(readlink -f -- "$path") == */mise ]] || grep -qaE 'mise (use|x) ' < <(head -c 4096 -- "$path" 2>/dev/null); then
     mise which "$1" >/dev/null 2>&1
   else
     return 0
