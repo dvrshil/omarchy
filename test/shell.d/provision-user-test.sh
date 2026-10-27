@@ -13,6 +13,11 @@ mkdir -p "$mock_bin" "$test_tmp/home" "$test_tmp/home/.hermes/profiles/james"
 for command in xdg-user-dirs-update xdg-settings xdg-mime; do
   printf '#!/bin/bash\nprintf "%%s %%s\\n" "${0##*/}" "$*" >>"$TEST_COMMAND_LOG"\n' >"$mock_bin/$command"
 done
+# Antigravity and Hermes count as installed: skills are only linked into the
+# folders of agents that are, and a plain script on PATH is an install.
+for command in agy hermes; do
+  printf '#!/bin/bash\n' >"$mock_bin/$command"
+done
 export TEST_COMMAND_LOG=$test_tmp/commands.log
 chmod +x "$mock_bin"/*
 
